@@ -224,7 +224,7 @@ class Parser:
     def get_general_info(flat_page):
         description_div = flat_page.find("div", id="description")
         general_info = {}
-        # unexpected behaviour in for loop, what this iterator actually is?
+
         for div in description_div.findChild("div"):
             for inner_div in div.findChildren("div", recursive=False):
                 title, value = None, None
@@ -421,7 +421,6 @@ class Parser:
         hour, minute = map(lambda x: int(x), offer_time.split(":"))
 
         if offer_date == "сегодня":
-            # сегодня, 09: 00
             offer_date = dt.date(dt.today())
             offer_dt = dt(
                 year=offer_date.year,
@@ -431,7 +430,6 @@ class Parser:
                 minute=minute,
             )
         elif offer_date == "вчера":
-            # вчера, 18: 42
             offer_date = dt.date(dt.today()) - timedelta(days=1)
             offer_dt = dt(
                 year=offer_date.year,
@@ -441,7 +439,6 @@ class Parser:
                 minute=int(minute),
             )
         else:
-            # 30 июл, 12: 40
             day, month_cyr = offer_date.split()
             month = month_to_number[month_cyr]
             offer_dt = dt(
@@ -487,23 +484,4 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
 
     df = pd.DataFrame(parser.still_data(start_page=1, min_price=9_750_000))
-    df.to_csv("collected_data_new2.csv")
-    # parser = Parser("https://www.cian.ru/cat.php?", 1)
-    # flat_soup = parser.get_flat_soup("https://www.cian.ru/sale/flat/260420118/")
-    # flat_soup = parser.get_flat_soup(
-    #     "https://www.cian.ru/sale/flat/260869123/"
-    # )
-    # flat_soup = parser.get_flat_soup(
-    #     "https://www.cian.ru/sale/flat/260546813/"
-    # )
-    # parser = Parser("https://www.cian.ru/cat.php?", 1)
-    # flat_soup = parser.get_flat_soup("https://www.cian.ru/sale/flat/258447697")
-    # s = parser.get_additional_features(flat_soup)
-    # print(s)
-    # df = pd.DataFrame([parser.get_flat_data(flat_soup)])
-    # print(df)
-    # df.to_csv("collected_data.csv")
-
-
-# https://www.cian.ru/sale/flat/253887023/
-# https://www.cian.ru/sale/flat/259141214/
+    df.to_csv("storage.csv")
