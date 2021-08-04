@@ -12,7 +12,7 @@ from tqdm import trange, tqdm
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-from src.misc.dummy_log import DummyLogWriter
+from misc.dummy_log import DummyLogWriter
 
 
 class Parser:

@@ -5,7 +5,9 @@ import sys
 from bs4 import BeautifulSoup
 
 root_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+src_path = os.path.join(root_path, 'src')
 sys.path.append(root_path)
+sys.path.append(src_path)
 
 
 from src.parser import Parser

@@ -1,12 +1,14 @@
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, SGDRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.compose import ColumnTransformer
+
 from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, SGDRegressor
+
 
 df = pd.read_csv("../data/prepared_data.csv", index_col=0)
 
