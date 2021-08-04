@@ -146,7 +146,6 @@ grid_lasso = GridSearchCV(
     param_grid={"regressor__alpha": [0.01, 0.1, 1, *np.linspace(1, 5, 10)],},
     cv=5,
 )
-# {'regressor__alpha': 0.01}
 grid_lasso.fit(X_train, y_train)
 print()
 print("grid lasso score: %.3f" % grid_lasso.score(X_test, y_test))
