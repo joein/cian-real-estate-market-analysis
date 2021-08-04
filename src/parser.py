@@ -1,3 +1,4 @@
+import os
 import sys
 import signal
 import traceback
@@ -43,7 +44,10 @@ class Parser:
 
         self.collected_data = []
         self.log = log if log else DummyLogWriter()
-        self.driver = webdriver.Chrome("../chromedriver")
+        chrome_driver_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "chromedriver"
+        )
+        self.driver = webdriver.Chrome(chrome_driver_path)
 
         self._last_processed_price = 0
 
@@ -472,7 +476,7 @@ def handler(sig_num, _):
     print(f"Got signal. SIGNUM is {sig_num}", file=sys.stderr)
     parser.driver.quit()
     df = pd.DataFrame(parser.collected_data)
-    df.to_csv("test_sample3.csv")
+    df.to_csv(data_path)
     print("interrupted collected data has been written")
     raise KeyboardInterrupt
 
@@ -480,8 +484,11 @@ def handler(sig_num, _):
 if __name__ == "__main__":
     # page_count = 2986
 
+    data_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "raw_data.csv"
+    )
     parser = Parser("https://www.cian.ru/cat.php", 2000)
     signal.signal(signal.SIGINT, handler)
 
     df = pd.DataFrame(parser.still_data(start_page=1, min_price=9_750_000))
-    df.to_csv("storage.csv")
+    df.to_csv(data_path)

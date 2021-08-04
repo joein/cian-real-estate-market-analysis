@@ -1,8 +1,12 @@
+import os
+
 import pandas as pd
 
 from datetime import datetime as dt
 
-
+data_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data"
+    )
 USD = 75.0  # approximate course for converting USD TO RUB
 TRANSPORT_TO_WALK_MULT = 5
 
@@ -30,7 +34,7 @@ def extract_room_number(x):
         return x.split("-")[0]
 
 
-df = pd.read_csv("../data/brand_new_sample.csv", index_col=0, parse_dates=["offer_dt"])
+df = pd.read_csv(os.path.join(data_path, "raw_data.csv"), index_col=0, parse_dates=["offer_dt"])
 print(f"Original shape: {df.shape}")
 
 df.drop_duplicates(inplace=True)
@@ -186,4 +190,5 @@ df.drop(df[df['rooms'] == '5'].index, inplace=True)
 print(df.info(), end="\n\n")
 print(df.describe(), end="\n\n")
 
-df.to_csv("data/prepared_data.csv")
+
+df.to_csv(os.path.join(data_path, "prepared_data.csv"))
