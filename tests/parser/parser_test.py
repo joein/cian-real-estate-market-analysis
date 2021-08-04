@@ -1,5 +1,10 @@
 import pytest
 
+from copy import copy
+from datetime import timedelta
+from datetime import datetime as dt
+
+
 from bs4 import BeautifulSoup
 
 from src.parser import Parser
@@ -20,8 +25,101 @@ def test___init__(
         )
 
 
-def test_still_data():
-    pass
+@pytest.mark.parametrize(
+    "kwargs,page_count,exp_last_processed_price,exp_process_search_page_call_count,exp_process_search_page_called_args,exp_err,exp_set_last_processed_price_call_count",
+    (
+        [{}, 0, 0, 0, [], "", 0],
+        [
+            {"start_page": 1, "min_price": 0},
+            2,
+            0,
+            2,
+            [
+                "deal_type=sale&engine_version=2&offer_type=flat&region=1&room1=1&room2=1&room3=1&room4=1&room5=1&room6=1&room7=1&room9=1&sort=price_object_order&p=1&minprice=0",
+                "deal_type=sale&engine_version=2&offer_type=flat&region=1&room1=1&room2=1&room3=1&room4=1&room5=1&room6=1&room7=1&room9=1&sort=price_object_order&p=2&minprice=0",
+            ],
+            "",
+            1,
+        ],
+        [
+            {"start_page": 2, "min_price": 0},
+            3,
+            0,
+            2,
+            [
+                "deal_type=sale&engine_version=2&offer_type=flat&region=1&room1=1&room2=1&room3=1&room4=1&room5=1&room6=1&room7=1&room9=1&sort=price_object_order&p=2&minprice=0",
+                "deal_type=sale&engine_version=2&offer_type=flat&region=1&room1=1&room2=1&room3=1&room4=1&room5=1&room6=1&room7=1&room9=1&sort=price_object_order&p=3&minprice=0",
+            ],
+            "",
+            1,
+        ],
+    ),
+)
+def test_still_data(
+    parser,
+    kwargs,
+    page_count,
+    exp_last_processed_price,
+    exp_process_search_page_call_count,
+    exp_process_search_page_called_args,
+    exp_err,
+    exp_set_last_processed_price_call_count,
+    mocker,
+    capsys,
+):
+    page = kwargs.get("start_page", 0)
+    process_search_page_urls = []
+    if page_count:
+        for i in range(page, min(page_count + 1, parser.LAST_SORTED_PAGE + 1)):
+            parser_params = copy(parser.QUERY_PARAMS)
+            parser_params["p"] = i
+            separate_str_params = (
+                f"{key}={value}" for key, value in parser_params.items()
+            )
+            joined_str_params = "&".join(separate_str_params)
+            process_search_page_urls.append(joined_str_params)
+
+    parser.page_count = page_count
+    process_search_page_mocker = mocker.patch.object(
+        parser, "process_search_page"
+    )
+    set_last_processed_price_mocker = mocker.patch.object(
+        parser, "set_last_processed_price"
+    )
+    parser.still_data(**kwargs)
+    _, err = capsys.readouterr()
+
+    assert (
+        set_last_processed_price_mocker.call_count
+        == exp_set_last_processed_price_call_count
+    )
+    assert process_search_page_urls == exp_process_search_page_called_args
+    assert parser._last_processed_price == exp_last_processed_price
+    assert (
+        process_search_page_mocker.call_count
+        == exp_process_search_page_call_count
+    )
+    assert exp_err in err
+
+
+@pytest.mark.parametrize(
+    "collected_data,exp_last_processed_price,exp_data_err",
+    [
+        ([{"price": 42}], 42, ""),
+        ([{"no_price": 42}], 0, "Price not found at"),
+        ([], 0, ""),
+    ],
+)
+def test_set_last_processed_price(
+    parser, collected_data, exp_last_processed_price, exp_data_err, capsys
+):
+    collected_data = collected_data
+    parser.collected_data = collected_data
+
+    parser.set_last_processed_price()
+    _, err = capsys.readouterr()
+    assert parser._last_processed_price == exp_last_processed_price
+    assert exp_data_err in err if exp_data_err else exp_data_err == err
 
 
 def test_process_search_page(parser, mocker):
@@ -456,8 +554,67 @@ def test_get_offer_title(parser, offer_title_flat_page, exp_offer_title):
     assert parser.get_offer_title(offer_title_flat_page) == exp_offer_title
 
 
-def test_get_date_offer_placement():
-    pass
+@pytest.mark.parametrize(
+    "date_offer_placement_page,exp_date,exp_time",
+    [
+        (
+            BeautifulSoup(
+                '<div data-name="OfferAdded">сегодня, 09:00</div>',
+                "html.parser",
+            ),
+            dt.date(dt.today()),
+            (9, 0),
+        ),
+        (
+            BeautifulSoup(
+                '<div data-name="OfferAdded">вчера, 18:42</div>', "html.parser"
+            ),
+            dt.date(dt.today() - timedelta(days=1)),
+            (18, 42),
+        ),
+        *[
+            (
+                BeautifulSoup(
+                    f'<div data-name="OfferAdded">12 {month}, 00:42</div>',
+                    "html.parser",
+                ),
+                dt(2021, month_ind + 1, 12),
+                (00, 42),
+            )
+            for month_ind, month in enumerate(
+                (
+                    "янв",
+                    "фев",
+                    "мар",
+                    "апр",
+                    "май",
+                    "июн",
+                    "июл",
+                    "авг",
+                    "сен",
+                    "окт",
+                    "ноя",
+                    "дек",
+                )
+            )
+        ],
+    ],
+)
+def test_get_date_offer_placement(
+    parser, date_offer_placement_page, exp_date, exp_time
+):
+    exp_hour, exp_minute = exp_time
+    exp_offer_dt = dt(
+        year=exp_date.year,
+        month=exp_date.month,
+        day=exp_date.day,
+        hour=exp_hour,
+        minute=exp_minute,
+    )
+    assert (
+        parser.get_date_offer_placement(date_offer_placement_page)
+        == exp_offer_dt
+    )
 
 
 @pytest.mark.parametrize(

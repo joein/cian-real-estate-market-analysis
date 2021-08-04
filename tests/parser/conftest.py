@@ -43,8 +43,26 @@ def exp_parser_fields():
         "page_count": 10,
         "_page_count": 10,
         "LAST_SORTED_PAGE": 53,
+        "FLATS_PER_PAGE": 28,
         "collected_data": [],
         "_last_processed_price": 0,
+        "QUERY_PARAMS": {
+            "deal_type": "sale",
+            "engine_version": 2,
+            "offer_type": "flat",
+            "region": 1,
+            "room1": 1,
+            "room2": 1,
+            "room3": 1,
+            "room4": 1,
+            "room5": 1,
+            "room6": 1,
+            "room7": 1,
+            "room9": 1,
+            "sort": "price_object_order",
+            "p": 1,
+            "minprice": 0,
+        }
     }
 
 

@@ -2,6 +2,7 @@ import sys
 import signal
 import traceback
 
+from copy import copy
 from datetime import datetime as dt
 from datetime import timedelta
 
@@ -16,6 +17,24 @@ from src.misc.dummy_log import DummyLogWriter
 
 class Parser:
     LAST_SORTED_PAGE = 53
+    FLATS_PER_PAGE = 28
+    QUERY_PARAMS = {
+        "deal_type": "sale",
+        "engine_version": 2,
+        "offer_type": "flat",
+        "region": 1,
+        "room1": 1,
+        "room2": 1,
+        "room3": 1,
+        "room4": 1,
+        "room5": 1,
+        "room6": 1,
+        "room7": 1,
+        "room9": 1,
+        "sort": "price_object_order",
+        "p": 1,
+        "minprice": 0,
+    }
 
     def __init__(self, url, page_count, log=None):
         self.url = url
@@ -29,23 +48,10 @@ class Parser:
         self._last_processed_price = 0
 
     def still_data(self, start_page=1, min_price=0):
-        params = {
-            "deal_type": "sale",
-            "engine_version": 2,
-            "offer_type": "flat",
-            "region": 1,
-            "room1": 1,
-            "room2": 1,
-            "room3": 1,
-            "room4": 1,
-            "room5": 1,
-            "room6": 1,
-            "room7": 1,
-            "room9": 1,
-            "sort": "price_object_order",
-            "p": start_page,
-            "minprice": min_price,
-        }
+        params = copy(self.QUERY_PARAMS)
+        params["start_page"] = start_page
+        params["minprice"] = min_price
+
         bootstrap = start_page > 1
         self._last_processed_price = min_price
 
@@ -74,7 +80,7 @@ class Parser:
                     self.process_search_page(url)
                     self.log.info(f"remains pages {self.page_count}")
                     self.log.info(
-                        f"flats remains {(self.page_count - num) * 28}"
+                        f"flats remains {(self.page_count - num) * self.FLATS_PER_PAGE}"
                     )
                     self.log.info(
                         f"flats collected {len(self.collected_data)}"
@@ -84,25 +90,25 @@ class Parser:
                         f"Unexpected error. Traceback is {traceback.format_exc()}"
                     )
 
-            got_price = False
-            while not got_price:
-                try:
-                    self._last_processed_price = self.collected_data[-1][
-                        "price"
-                    ]
-                    self.log.info(
-                        f"last processed price {self._last_processed_price}"
-                    )
-                    got_price = True
-                except KeyError:
-                    self.log.warning(
-                        f"Price not found at {self.collected_data[-1]}"
-                    )
-                except IndexError:
-                    raise
-
+            self.set_last_processed_price()
             self.page_count -= min(self.page_count, self.LAST_SORTED_PAGE)
         return self.collected_data
+
+    def set_last_processed_price(self):
+        i = 0
+        collected_data_len = len(self.collected_data)
+        while abs(i) != collected_data_len:
+            i -= 1
+            try:
+                self._last_processed_price = self.collected_data[i]["price"]
+                self.log.info(
+                    f"last processed price {self._last_processed_price}"
+                )
+                break
+            except KeyError:
+                self.log.warning(
+                    f"Price not found at {self.collected_data[-1]}"
+                )
 
     def process_search_page(self, url):
         page = self.get_search_page(url)
@@ -206,10 +212,12 @@ class Parser:
     def get_description_length(flat_page):
         try:
             description_div = flat_page.find("div", id="description")
-            p_tag = description_div.find("p", attrs={"itemprop": "description"})
+            p_tag = description_div.find(
+                "p", attrs={"itemprop": "description"}
+            )
             description = p_tag.text
         except Exception:
-            description = ''
+            description = ""
         return len(description)
 
     @staticmethod
@@ -317,9 +325,11 @@ class Parser:
             span_tag = li.findChild("span")
             time_to_underground = span_tag.text if span_tag else None
             if time_to_underground:
-                time_to_underground = time_to_underground.replace(
-                    "⋅", ""
-                ).strip().replace('<', '')
+                time_to_underground = (
+                    time_to_underground.replace("⋅", "")
+                    .strip()
+                    .replace("<", "")
+                )
                 undergrounds[underground] = time_to_underground
 
         for li in highway_li:
@@ -347,7 +357,9 @@ class Parser:
             try:
                 time_to_underground = float(value.split(" ")[0])
             except ValueError:
-                self.log.error(f"Can't convert time_to_underground '{value}' to float")
+                self.log.error(
+                    f"Can't convert time_to_underground '{value}' to float"
+                )
                 continue
             if transport:
                 time_to_underground *= 5
@@ -409,6 +421,7 @@ class Parser:
         hour, minute = map(lambda x: int(x), offer_time.split(":"))
 
         if offer_date == "сегодня":
+            # сегодня, 09: 00
             offer_date = dt.date(dt.today())
             offer_dt = dt(
                 year=offer_date.year,
@@ -418,6 +431,7 @@ class Parser:
                 minute=minute,
             )
         elif offer_date == "вчера":
+            # вчера, 18: 42
             offer_date = dt.date(dt.today()) - timedelta(days=1)
             offer_dt = dt(
                 year=offer_date.year,
@@ -427,6 +441,7 @@ class Parser:
                 minute=int(minute),
             )
         else:
+            # 30 июл, 12: 40
             day, month_cyr = offer_date.split()
             month = month_to_number[month_cyr]
             offer_dt = dt(
