@@ -26,12 +26,13 @@ def test___init__(
 
 
 @pytest.mark.parametrize(
-    "kwargs,page_count,exp_last_processed_price,exp_process_search_page_call_count,exp_process_search_page_called_args,exp_err,exp_set_last_processed_price_call_count",
+    "kwargs,page_count,reset_last_sorted_page,exp_last_processed_price,exp_process_search_page_call_count,exp_process_search_page_called_args,exp_err,exp_set_last_processed_price_call_count",
     (
-        [{}, 0, 0, 0, [], "", 0],
+        [{}, 0, False, 0, 0, [], "", 0],
         [
             {"start_page": 1, "min_price": 0},
             2,
+            False,
             0,
             2,
             [
@@ -44,6 +45,7 @@ def test___init__(
         [
             {"start_page": 2, "min_price": 0},
             3,
+            False,
             0,
             2,
             [
@@ -53,12 +55,14 @@ def test___init__(
             "",
             1,
         ],
+        [{"start_page": 2, "min_price": 0}, 3, True, 0, 2, [], "", 3,],
     ),
 )
 def test_still_data(
     parser,
     kwargs,
     page_count,
+    reset_last_sorted_page,
     exp_last_processed_price,
     exp_process_search_page_call_count,
     exp_process_search_page_called_args,
@@ -69,6 +73,10 @@ def test_still_data(
 ):
     page = kwargs.get("start_page", 0)
     process_search_page_urls = []
+
+    if reset_last_sorted_page:
+        parser.LAST_SORTED_PAGE = 1
+
     if page_count:
         for i in range(page, min(page_count + 1, parser.LAST_SORTED_PAGE + 1)):
             parser_params = copy(parser.QUERY_PARAMS)
