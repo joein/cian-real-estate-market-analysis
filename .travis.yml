@@ -14,13 +14,7 @@ services:
 
 before_install:
   - chmod +x ./travis/build_and_test.sh
-  - chmod +x ./travis/deliver.sh
-jobs:
-  include:
-    - stage: build_and_test
-      script: ./travis/build_and_test.sh
-    - stage: deliver
-      script: ./travis/deliver.sh
 
+script: ./travis/build_and_test.sh
 
 
