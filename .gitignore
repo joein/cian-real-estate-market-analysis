@@ -2,3 +2,11 @@ venv/
 .idea/
 .DS_STORE/
 *.pyc
+.coverage
+.data/
+.ipynb_checkpoints
+.pytest_cache
+.data_preparing.ipynb
+.models.ipynb
+chromedriver
+*.csv
