@@ -13,6 +13,6 @@ services:
   - docker
 
 script:
-  - bash travis/build_and_test.sh
+  - ./travis/build_and_test.sh
 
 
